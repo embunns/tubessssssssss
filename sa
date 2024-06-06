@@ -1,0 +1,128 @@
+function bruteforce(items, maxWeight) {
+    const n = items.length;
+    let maxProfit = 0;
+    let bestCombination = [];
+
+    function* combinations(array, r) {
+        const data = new Array(r);
+        function* combHelper(start, depth) {
+            if (depth === r) {
+                yield data.slice();
+                return;
+            }
+            for (let i = start; i <= array.length + depth - r; i++) {
+                data[depth] = array[i];
+                yield* combHelper(i + 1, depth + 1);
+            }
+        }
+        yield* combHelper(0, 0);
+    }
+
+    for (let r = 1; r <= n; r++) {
+        for (let subset of combinations(items, r)) {
+            const totalWeight = subset.reduce((sum, item) => sum + item.weight, 0);
+            const totalProfit = subset.reduce((sum, item) => sum + item.profit, 0);
+            const highPriorityCount = subset.reduce((count, item) => count + (item.category === 'Cepat Busuk' ? 1 : 0), 0);
+            const mediumPriorityCount = subset.reduce((count, item) => count + (item.dateDifference > 7 ? 1 : 0), 0);
+
+            const bestHighPriorityCount = bestCombination.reduce((count, item) => count + (item.category === 'Cepat Busuk' ? 1 : 0), 0);
+            const bestMediumPriorityCount = bestCombination.reduce((count, item) => count + (item.dateDifference > 7 ? 1 : 0), 0);
+
+            // Kondisi pemilihan kombinasi terbaik
+            if (totalWeight <= maxWeight && 
+                (highPriorityCount > bestHighPriorityCount || 
+                (highPriorityCount === bestHighPriorityCount && 
+                 mediumPriorityCount > bestMediumPriorityCount) || 
+                (highPriorityCount === bestHighPriorityCount && 
+                 mediumPriorityCount === bestMediumPriorityCount && 
+                 totalProfit > maxProfit))) {
+                maxProfit = totalProfit;
+                bestCombination = subset;
+            }
+        }
+    }
+
+    return { maxProfit, bestCombination };
+}
+
+function greedybydensity(items, maxWeight) {
+    function calculatePriority(item) {
+        if (item.category === 'Cepat Busuk') {
+            return 2;
+        } else if (item.dateDifference > 7) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    items.sort((a, b) => {
+        const priorityA = calculatePriority(a);
+        const priorityB = calculatePriority(b);
+
+        if (priorityA !== priorityB) {
+            return priorityB - priorityA;
+        } else {
+            return b.density - a.density;
+        }
+    });
+
+    let totalWeight = 0;
+    let totalProfit = 0;
+    let selectedItems = [];
+
+    for (let item of items) {
+        if (totalWeight + item.weight <= maxWeight) {
+            selectedItems.push(item);
+            totalWeight += item.weight;
+            totalProfit += item.profit;
+        }
+    }
+
+    return { totalProfit, selectedItems };
+}
+
+function main() {
+    const currentDate = new Date(prompt("Masukkan tanggal saat ini (YYYY-MM-DD): "));
+    const numItems = parseInt(prompt("Masukkan jumlah barang: "));
+    let items = [];
+
+    for (let i = 0; i < numItems; i++) {
+        const name = prompt(`Masukkan nama barang ke-${i + 1}: `);
+        const profit = parseFloat(prompt(`Masukkan profit barang ke-${i + 1}: `));
+        const weight = parseFloat(prompt(`Masukkan weight barang ke-${i + 1}: `));
+        const density = profit / weight;
+        const dateStr = prompt(`Masukkan tanggal masuk barang ke-${i + 1} (YYYY-MM-DD): `);
+        const date = new Date(dateStr);
+        const category = prompt(`Apakah barang ke-${i + 1} cepat busuk? (ya/tidak): `).toLowerCase() === 'ya' ? 'Cepat Busuk' : 'Tidak Cepat Busuk';
+        const dateDifference = Math.ceil((currentDate - date) / (1000 * 60 * 60 * 24)); // Menghitung selisih hari
+        items.push({ name, profit, weight, density, date: dateStr, category, dateDifference });
+    }
+
+    const maxWeight = 60000;
+
+    // Mengukur waktu mulai untuk brute force
+    let startTime = performance.now();
+    let result = bruteforce(items, maxWeight);
+    let endTime = performance.now();
+    console.log("\nBarang yang diambil untuk profit maksimum berdasarkan brute force:");
+    result.bestCombination.forEach(item => {
+        console.log(`Nama: ${item.name}, Profit: ${item.profit}, Weight: ${item.weight}, Density: ${item.density}, Tanggal: ${item.date}, Kategori: ${item.category}, Selisih Hari: ${item.dateDifference}`);
+    });
+    console.log(`Profit maksimum: ${result.maxProfit}`);
+    console.log("Running time: ", (endTime - startTime) / 1000, "detik");
+
+    // Mengukur waktu mulai untuk greedy by density
+    startTime = performance.now();
+    result = greedybydensity(items, maxWeight);
+    endTime = performance.now();
+    console.log("\nBarang yang diambil untuk profit maksimum berdasarkan greedy by density:");
+    result.selectedItems.forEach(item => {
+        console.log(`Nama: ${item.name}, Profit: ${item.profit}, Weight: ${item.weight}, Density: ${item.density}, Tanggal: ${item.date}, Kategori: ${item.category}, Selisih Hari: ${item.dateDifference}`);
+    });
+    console.log(`Profit maksimum: ${result.totalProfit}`);
+    console.log("Running time: ", (endTime - startTime) / 1000, "detik");
+}
+
+// Menjalankan program utama
+main();
