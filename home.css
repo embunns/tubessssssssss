@@ -94,7 +94,7 @@ body {
 }
 
 .header {
-  background-image: url("assets/header.png");
+  background-image: url("header.png");
   background-position: center center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -320,7 +320,7 @@ nav {
 }
 
 .service {
-  background-image: url("assets/service.png");
+  background-image: url("service.png");
   background-position: center center;
   background-size: cover;
   background-repeat: no-repeat;
